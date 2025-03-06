@@ -12,7 +12,9 @@ const app = express();
  * antes de llamar al controlador de ruta.
  */
 app.use(express.json());
+app.use(express.static('dist'));
 app.use(cors());
+
 
 /**
  * Using express library instead of http
@@ -107,6 +109,43 @@ app.post('/api/notes', (request, response) => {
 
     console.log('Note:', note);
     response.json(note);
+});
+
+app.put('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id);
+    const body = request.body;
+
+    const note = notes.find(n => n.id === id);
+
+    if(!note) {
+        return response.status(404).json({
+            error: `Note with ID ${id} not found.`,
+            status: 404,
+            timeStamp: new Date().toISOString()
+        });
+    }
+
+    if(!body.content || typeof body.content !== 'string') {
+        return response.status(400).json({
+            error: 'Invalid or missing content.',
+            status: 400,
+            timeStamp: new Date().toISOString()
+        });
+    }
+
+    if(typeof body.important !== 'boolean') {
+        return response.status(400).json({
+            error: 'Invalid or missing important value.',
+            status: 400,
+            timeStamp: new Date().toISOString()
+        });
+    }
+
+    const updatedNote = { ...note, content: body.content, important: body.important};
+
+    notes = notes.map(n => (n.id === id ? updatedNote : n));
+
+    response.json(updatedNote);
 });
 
 const PORT = process.env.PORT || 3001;
