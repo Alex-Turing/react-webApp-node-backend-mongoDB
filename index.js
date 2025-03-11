@@ -15,7 +15,7 @@ const app = express();
  * antes de llamar al controlador de ruta.
  */
 app.use(express.json());
-//app.use(express.static('dist'));
+app.use(express.static('dist'));
 app.use(cors());
 
 
