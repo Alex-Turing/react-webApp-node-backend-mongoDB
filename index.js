@@ -3,7 +3,6 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const Note = require('./models/note');
-//const mongoose = require('mongoose');
 const app = express();
 
 /**
@@ -61,8 +60,9 @@ app.get('/api/notes', (request, response) => {
 });
 
 app.get('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    const note = notes.find(note => note.id === id);
+    const id = request.params.id;
+    //const note = notes.find(note => note.id === id);
+    const note = Note.findById(id);
 
     if (note) {
         response.json(note);
@@ -97,7 +97,7 @@ const generateId = () => {
 
 app.post('/api/notes', (request, response) => {
     const body = request.body;
-    if (!body.content) {
+    if (body.content === undefined) {
         return response.status(400).json({
             error: 'Content is missing.',
             status: 400,
@@ -105,13 +105,17 @@ app.post('/api/notes', (request, response) => {
         });
     }
 
-    const note = {
+    const note = new Note ({
         content: body.content,
         important: Boolean(body.important) || false,
-        id: generateId(),
-    }
+        //id: generateId(),
+    })
 
-    notes = notes.concat(note);
+    //notes = notes.concat(note);   //This line returns the data in the notes array, when data is located  inside this file for testing purposes
+
+    note.save().then(savedNote => {
+        response.json(savedNote);
+    });
 
     console.log('Note:', note);
     response.json(note);
