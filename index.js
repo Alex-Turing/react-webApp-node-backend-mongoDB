@@ -1,6 +1,9 @@
 
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const Note = require('./models/note');
+//const mongoose = require('mongoose');
 const app = express();
 
 /**
@@ -12,7 +15,7 @@ const app = express();
  * antes de llamar al controlador de ruta.
  */
 app.use(express.json());
-app.use(express.static('dist'));
+//app.use(express.static('dist'));
 app.use(cors());
 
 
@@ -51,7 +54,10 @@ app.get('/', (request, response) => {
 });
 
 app.get('/api/notes', (request, response) => {
-    response.json(notes);
+    //response.json(notes); //This line returns the data in the notes array, when data is located  inside this file for testing purposes
+    Note.find({}).then(notes => {
+        response.json(notes);
+    })
 });
 
 app.get('/api/notes/:id', (request, response) => {
@@ -91,7 +97,7 @@ const generateId = () => {
 
 app.post('/api/notes', (request, response) => {
     const body = request.body;
-    if(!body.content) {
+    if (!body.content) {
         return response.status(400).json({
             error: 'Content is missing.',
             status: 400,
@@ -117,7 +123,7 @@ app.put('/api/notes/:id', (request, response) => {
 
     const note = notes.find(n => n.id === id);
 
-    if(!note) {
+    if (!note) {
         return response.status(404).json({
             error: `Note with ID ${id} not found.`,
             status: 404,
@@ -125,7 +131,7 @@ app.put('/api/notes/:id', (request, response) => {
         });
     }
 
-    if(!body.content || typeof body.content !== 'string') {
+    if (!body.content || typeof body.content !== 'string') {
         return response.status(400).json({
             error: 'Invalid or missing content.',
             status: 400,
@@ -133,7 +139,7 @@ app.put('/api/notes/:id', (request, response) => {
         });
     }
 
-    if(typeof body.important !== 'boolean') {
+    if (typeof body.important !== 'boolean') {
         return response.status(400).json({
             error: 'Invalid or missing important value.',
             status: 400,
@@ -141,7 +147,7 @@ app.put('/api/notes/:id', (request, response) => {
         });
     }
 
-    const updatedNote = { ...note, content: body.content, important: body.important};
+    const updatedNote = { ...note, content: body.content, important: body.important };
 
     notes = notes.map(n => (n.id === id ? updatedNote : n));
 
