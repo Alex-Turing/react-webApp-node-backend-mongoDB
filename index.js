@@ -17,7 +17,6 @@ app.use(express.json());
 app.use(express.static('dist'));
 app.use(cors());
 
-
 /**
  * Using express library instead of http
  * significantly reduces the complexity of
@@ -25,23 +24,23 @@ app.use(cors());
  */
 //const http = require('http');
 
-let notes = [
-    {
-        id: 1,
-        content: "HTML is easy",
-        important: true
-    },
-    {
-        id: 2,
-        content: "Browser can execute only JavaScript",
-        important: false
-    },
-    {
-        id: 3,
-        content: "GET and POST are the most important methods of HTTP protocol",
-        important: true
-    }
-]
+// let notes = [
+//     {
+//         id: 1,
+//         content: "HTML is easy",
+//         important: true
+//     },
+//     {
+//         id: 2,
+//         content: "Browser can execute only JavaScript",
+//         important: false
+//     },
+//     {
+//         id: 3,
+//         content: "GET and POST are the most important methods of HTTP protocol",
+//         important: true
+//     }
+// ]
 
 // const app = http.createServer((req, response) => {
 //     response.writeHead(200, { 'Content-Type': 'application/json' });
@@ -61,39 +60,40 @@ app.get('/api/notes', (request, response) => {
 
 app.get('/api/notes/:id', (request, response) => {
     const id = request.params.id;
-    //const note = notes.find(note => note.id === id);
-    const note = Note.findById(id);
-
-    if (note) {
-        response.json(note);
-    }
-    else {
-        response.status(404).json({
-            error: `Note with ID ${id} not found.`,
-            status: 404,
-            timeStamp: new Date().toISOString()
-        });
-    }
+    Note.findById(id)
+        .then(note => {
+            if (note) {
+                response.json(note)
+            }
+            else {
+                response.status(404).json({
+                    error: `Note with ID ${id} not found`,
+                    status: 404,
+                    timeStamp: new Date().toISOString()
+                });
+            }
+        })
+        .catch(error => next(error));
 });
 
 app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    notes = notes.filter(note => note.id !== id);
+    const id = request.params.id;
 
-    response.status(204).json({
-        message: `Note with id ${id} was successfully deleted`,
-        status: 204,
-        timeStamp: new Date().toISOString()
-    });
+    Note.findByIdAndDelete(id)
+        .then(note => {
+            if (note) {
+                response.status(204).end();
+            }
+            else {
+                response.status(404).json({
+                    error: `Note with ID ${id} not found`,
+                    status: 404,
+                    timeStamp: new Date().toISOString()
+                });
+            }
+        })
+        .catch(error => next(error));
 });
-
-const generateId = () => {
-    const maxId = notes.length > 0
-        ? Math.max(...notes.map(n => n.id))
-        : 0;
-    console.log('Max ID: ', maxId);
-    return maxId + 1;
-};
 
 app.post('/api/notes', (request, response) => {
     const body = request.body;
@@ -105,10 +105,9 @@ app.post('/api/notes', (request, response) => {
         });
     }
 
-    const note = new Note ({
+    const note = new Note({
         content: body.content,
         important: Boolean(body.important) || false,
-        //id: generateId(),
     })
 
     //notes = notes.concat(note);   //This line returns the data in the notes array, when data is located  inside this file for testing purposes
@@ -118,45 +117,53 @@ app.post('/api/notes', (request, response) => {
     });
 
     console.log('Note:', note);
-    response.json(note);
 });
 
 app.put('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id);
-    const body = request.body;
+    const id = request.params.id;
+    const { content, important } = request.body;
 
-    const note = notes.find(n => n.id === id);
-
-    if (!note) {
-        return response.status(404).json({
-            error: `Note with ID ${id} not found.`,
-            status: 404,
-            timeStamp: new Date().toISOString()
-        });
-    }
-
-    if (!body.content || typeof body.content !== 'string') {
+    if (!content || typeof content !== 'string') {
         return response.status(400).json({
             error: 'Invalid or missing content.',
             status: 400,
             timeStamp: new Date().toISOString()
         });
     }
-
-    if (typeof body.important !== 'boolean') {
+    if (typeof important !== 'boolean') {
         return response.status(400).json({
             error: 'Invalid or missing important value.',
             status: 400,
             timeStamp: new Date().toISOString()
         });
     }
-
-    const updatedNote = { ...note, content: body.content, important: body.important };
-
-    notes = notes.map(n => (n.id === id ? updatedNote : n));
-
-    response.json(updatedNote);
+    Note.findByIdAndUpdate(
+        id, { content, important },
+        { new: true, runValidators: true }
+    )
+        .then(updatedNote => {
+            if (!updatedNote) {
+                return response.status(404).json({
+                    error: `Note with ID ${id} not found.`,
+                    status: 404,
+                    timeStamp: new Date().toISOString()
+                });
+            }
+            response.json(updatedNote);
+        })
+        .catch(error => next(error));
 });
+
+const errorHandler = (error, request, response, next) => {
+    console.error(error.message);
+    if (error.message === 'CastError') {
+        return response.status(400).send({ error: 'malformated id' });
+    }
+
+    next(error);
+}
+
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 3001;
 
