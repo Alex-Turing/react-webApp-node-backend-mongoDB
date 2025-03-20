@@ -4,9 +4,9 @@
   "description": "Helsinki university course firts backen example",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cross-env NODE_ENV=production node index.js",
+    "dev": "cross-env NODE_ENV=development nodemon index.js",
+    "test": "cross-env NODE_ENV=test node --test",
     "build:ui": "rm -rf dist && cd ../../part2/notes && npm run build && cp -r dist ../../part3/notes-backend",
     "build:full": "sh -c \"npm run build:ui && git add . && git commit -m \"uibuild $(date +'%Y-%m-%d %H:%M:%S')\" && git push\""
   },
@@ -19,6 +19,7 @@
     "mongoose": "^8.12.1"
   },
   "devDependencies": {
+    "cross-env": "^7.0.3",
     "nodemon": "^3.1.9"
   }
 }
